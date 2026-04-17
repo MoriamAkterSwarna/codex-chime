@@ -1,0 +1,196 @@
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { BarChart3, GraduationCap, Sparkles, TrendingUp } from "lucide-react";
+import { fetchProjects, startEvaluation } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import type { ProjectWithEvaluation } from "@/types";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SiteHeader } from "@/components/SiteHeader";
+import { ProjectCard } from "@/components/ProjectCard";
+
+const Dashboard = () => {
+  const [projects, setProjects] = useState<ProjectWithEvaluation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [evaluating, setEvaluating] = useState<Set<string>>(new Set());
+
+  const reload = async () => {
+    try {
+      const data = await fetchProjects();
+      setProjects(data);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load projects");
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      await reload();
+      setLoading(false);
+    })();
+
+    const channel = supabase
+      .channel("evaluations-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "evaluations" },
+        () => {
+          reload();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleEvaluate = async (p: ProjectWithEvaluation) => {
+    setEvaluating((s) => new Set(s).add(p.id));
+    try {
+      await startEvaluation(p.id, p.live_url, p.github_repo);
+      toast.success(`Evaluation started for ${p.project_title}`);
+      await reload();
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to start evaluation");
+    } finally {
+      setEvaluating((s) => {
+        const n = new Set(s);
+        n.delete(p.id);
+        return n;
+      });
+    }
+  };
+
+  const stats = useMemo(() => {
+    const completed = projects.filter((p) => p.evaluation?.status === "completed");
+    const totals = completed
+      .map((p) => p.evaluation?.total_score)
+      .filter((v): v is number => v != null);
+    const avg = totals.length
+      ? Math.round((totals.reduce((a, b) => a + b, 0) / totals.length) * 10) / 10
+      : null;
+    const top = totals.length ? Math.max(...totals) : null;
+    return {
+      total: projects.length,
+      completed: completed.length,
+      avg,
+      top,
+    };
+  }, [projects]);
+
+  return (
+    <div className="min-h-screen">
+      <SiteHeader />
+
+      <main className="mx-auto max-w-7xl px-4 pb-24 pt-12 sm:px-6 lg:px-8">
+        {/* Hero */}
+        <section className="animate-fade-in-up">
+          <div className="border-primary/30 bg-primary/10 text-primary mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
+            <Sparkles className="h-3.5 w-3.5" />
+            Powered by Lovable AI
+          </div>
+          <h1 className="font-display max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
+            Evaluate student projects in seconds, not hours.
+          </h1>
+          <p className="text-muted-foreground mt-4 max-w-2xl text-lg">
+            Automated UI critique, Lighthouse performance, and GitHub repo analysis —
+            all distilled into a clear, gradable report.
+          </p>
+        </section>
+
+        {/* Stats */}
+        <section className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatCard
+            label="Projects"
+            value={stats.total}
+            icon={<GraduationCap className="h-4 w-4" />}
+          />
+          <StatCard
+            label="Evaluated"
+            value={stats.completed}
+            icon={<BarChart3 className="h-4 w-4" />}
+          />
+          <StatCard
+            label="Avg score"
+            value={stats.avg ?? "—"}
+            icon={<TrendingUp className="h-4 w-4" />}
+            accent
+          />
+          <StatCard
+            label="Top score"
+            value={stats.top ?? "—"}
+            icon={<Sparkles className="h-4 w-4" />}
+          />
+        </section>
+
+        {/* Projects */}
+        <section className="mt-12">
+          <div className="mb-6 flex items-baseline justify-between">
+            <h2 className="font-display text-2xl font-semibold">Submissions</h2>
+            <span className="text-muted-foreground text-sm tabular-nums">
+              {projects.length} project{projects.length === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-56 rounded-xl" />
+              ))}
+            </div>
+          ) : projects.length === 0 ? (
+            <Card className="p-12 text-center">
+              <p className="text-muted-foreground">No projects yet.</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {projects.map((p) => (
+                <ProjectCard
+                  key={p.id}
+                  project={p}
+                  evaluating={evaluating.has(p.id)}
+                  onEvaluate={() => handleEvaluate(p)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+};
+
+function StatCard({
+  label,
+  value,
+  icon,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  accent?: boolean;
+}) {
+  return (
+    <Card className="glass border-border/60 p-5">
+      <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium uppercase tracking-wider">
+        {icon}
+        {label}
+      </div>
+      <div
+        className={
+          "font-display mt-2 text-3xl font-bold tabular-nums " +
+          (accent ? "text-gradient-primary" : "")
+        }
+      >
+        {value}
+      </div>
+    </Card>
+  );
+}
+
+export default Dashboard;

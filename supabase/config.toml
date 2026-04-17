@@ -1,0 +1,4 @@
+project_id = "pclbtbgvmomrjgdqprlh"
+
+[functions.evaluate-project]
+verify_jwt = false
