@@ -14,7 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      evaluations: {
+        Row: {
+          accessibility_score: number | null
+          ai_feedback: Json | null
+          best_practices_score: number | null
+          code_quality_score: number | null
+          created_at: string
+          desktop_screenshot_url: string | null
+          error_message: string | null
+          functionality_score: number | null
+          github_analysis: Json | null
+          id: string
+          mobile_screenshot_url: string | null
+          performance_score: number | null
+          project_id: string
+          responsiveness_score: number | null
+          seo_score: number | null
+          status: string
+          total_score: number | null
+          ui_design_score: number | null
+          updated_at: string
+        }
+        Insert: {
+          accessibility_score?: number | null
+          ai_feedback?: Json | null
+          best_practices_score?: number | null
+          code_quality_score?: number | null
+          created_at?: string
+          desktop_screenshot_url?: string | null
+          error_message?: string | null
+          functionality_score?: number | null
+          github_analysis?: Json | null
+          id?: string
+          mobile_screenshot_url?: string | null
+          performance_score?: number | null
+          project_id: string
+          responsiveness_score?: number | null
+          seo_score?: number | null
+          status?: string
+          total_score?: number | null
+          ui_design_score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          accessibility_score?: number | null
+          ai_feedback?: Json | null
+          best_practices_score?: number | null
+          code_quality_score?: number | null
+          created_at?: string
+          desktop_screenshot_url?: string | null
+          error_message?: string | null
+          functionality_score?: number | null
+          github_analysis?: Json | null
+          id?: string
+          mobile_screenshot_url?: string | null
+          performance_score?: number | null
+          project_id?: string
+          responsiveness_score?: number | null
+          seo_score?: number | null
+          status?: string
+          total_score?: number | null
+          ui_design_score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          github_repo: string
+          id: string
+          live_url: string
+          project_title: string
+          student_name: string
+        }
+        Insert: {
+          created_at?: string
+          github_repo?: string
+          id?: string
+          live_url?: string
+          project_title?: string
+          student_name?: string
+        }
+        Update: {
+          created_at?: string
+          github_repo?: string
+          id?: string
+          live_url?: string
+          project_title?: string
+          student_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
