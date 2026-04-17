@@ -19,7 +19,7 @@ export async function fetchProjects(): Promise<ProjectWithEvaluation[]> {
   if (evalErr) throw evalErr;
 
   const latest = new Map<string, Evaluation>();
-  for (const e of (evals ?? []) as Evaluation[]) {
+  for (const e of (evals ?? []) as unknown as Evaluation[]) {
     if (!latest.has(e.project_id)) latest.set(e.project_id, e);
   }
 
@@ -50,7 +50,7 @@ export async function fetchProjectWithLatestEvaluation(
 
   return {
     ...(project as Project),
-    evaluation: ((evals ?? [])[0] as Evaluation) ?? null,
+    evaluation: ((evals ?? [])[0] as unknown as Evaluation) ?? null,
   };
 }
 
@@ -61,7 +61,7 @@ export async function fetchEvaluation(evaluationId: string): Promise<Evaluation 
     .eq("id", evaluationId)
     .maybeSingle();
   if (error) throw error;
-  return (data as Evaluation) ?? null;
+  return (data as unknown as Evaluation) ?? null;
 }
 
 export async function startEvaluation(
