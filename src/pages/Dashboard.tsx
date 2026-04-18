@@ -128,41 +128,8 @@ const Dashboard = () => {
           />
         </section>
 
-        {/* Projects */}
-        <section className="mt-12">
-          <div className="mb-6 flex items-baseline justify-between">
-            <h2 className="font-display text-2xl font-semibold">Submissions</h2>
-            <span className="text-muted-foreground text-sm tabular-nums">
-              {projects.length} project{projects.length === 1 ? "" : "s"}
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-56 rounded-xl" />
-              ))}
-            </div>
-          ) : projects.length === 0 ? (
-            <Card className="p-12 text-center">
-              <p className="text-muted-foreground">No projects yet.</p>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {projects.map((p) => (
-                <ProjectCard
-                  key={p.id}
-                  project={p}
-                  evaluating={evaluating.has(p.id)}
-                  onEvaluate={() => handleEvaluate(p)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-
         {/* Image-to-image matcher */}
-        <section className="mt-16">
+        <section className="mt-12">
           <ImageMatcher />
         </section>
       </main>
