@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ImageIcon, FileJson, Sparkles, Loader2, X } from "lucide-react";
+import { ImageIcon, FileJson, Sparkles, Loader2, X, History, Trash2, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -14,6 +14,18 @@ type MatchResult = {
   differences: string[];
   similarities: string[];
   summary: string;
+};
+
+type MatchRun = {
+  id: string;
+  image_a_url: string;
+  image_b_url: string;
+  instruction: unknown;
+  result: MatchResult;
+  overall_similarity: number | null;
+  verdict: string | null;
+  summary: string | null;
+  created_at: string;
 };
 
 const DEFAULT_INSTRUCTION = {
@@ -116,7 +128,54 @@ export function ImageMatcher() {
   const [jsonName, setJsonName] = useState<string>("default rubric");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<MatchResult | null>(null);
+  const [history, setHistory] = useState<MatchRun[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [openId, setOpenId] = useState<string | null>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
+
+  const loadHistory = async () => {
+    const { data, error } = await (supabase as any)
+      .from("image_matches")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) {
+      console.warn("history load error", error);
+      return;
+    }
+    setHistory((data ?? []) as MatchRun[]);
+  };
+
+  useEffect(() => {
+    (async () => {
+      setHistoryLoading(true);
+      await loadHistory();
+      setHistoryLoading(false);
+    })();
+  }, []);
+
+  const deleteRun = async (id: string) => {
+    const prev = history;
+    setHistory((h) => h.filter((r) => r.id !== id));
+    const { error } = await (supabase as any).from("image_matches").delete().eq("id", id);
+    if (error) {
+      toast.error("Failed to delete");
+      setHistory(prev);
+    } else {
+      toast.success("Deleted");
+    }
+  };
+
+  const loadFromHistory = (run: MatchRun) => {
+    setPreviewA(run.image_a_url);
+    setPreviewB(run.image_b_url);
+    setImgA(null);
+    setImgB(null);
+    setInstructionText(JSON.stringify(run.instruction, null, 2));
+    setJsonName(`from history · ${new Date(run.created_at).toLocaleString()}`);
+    setResult(run.result);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleImage = async (which: "a" | "b", f: File) => {
     const url = await fileToDataUrl(f);
@@ -162,8 +221,29 @@ export function ImageMatcher() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      setResult((data as { result: MatchResult }).result);
+      const matchResult = (data as { result: MatchResult }).result;
+      setResult(matchResult);
       toast.success("Comparison complete");
+
+      // Persist run to history
+      const { data: inserted, error: insErr } = await (supabase as any)
+        .from("image_matches")
+        .insert({
+          image_a_url: previewA,
+          image_b_url: previewB,
+          instruction,
+          result: matchResult,
+          overall_similarity: matchResult.overallSimilarity,
+          verdict: matchResult.verdict,
+          summary: matchResult.summary,
+        })
+        .select()
+        .single();
+      if (insErr) {
+        console.warn("save history error", insErr);
+      } else if (inserted) {
+        setHistory((h) => [inserted as MatchRun, ...h]);
+      }
     } catch (e) {
       console.error(e);
       toast.error(e instanceof Error ? e.message : "Comparison failed");
@@ -323,6 +403,134 @@ export function ImageMatcher() {
           </div>
         </div>
       )}
+
+      {/* History */}
+      <div className="border-border/50 mt-10 border-t pt-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <History className="text-muted-foreground h-4 w-4" />
+            <h3 className="font-display text-lg font-semibold">Match history</h3>
+          </div>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {history.length} run{history.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        {historyLoading ? (
+          <div className="text-muted-foreground py-6 text-center text-sm">Loading…</div>
+        ) : history.length === 0 ? (
+          <div className="border-border/50 text-muted-foreground rounded-lg border border-dashed py-8 text-center text-sm">
+            No comparisons yet. Run your first match above.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {history.map((run) => {
+              const isOpen = openId === run.id;
+              const score = Math.round(run.overall_similarity ?? 0);
+              const v = run.verdict ?? "";
+              const vClass =
+                v === "match"
+                  ? "bg-green-500/15 text-green-400 border-green-500/30"
+                  : v === "partial"
+                    ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/30"
+                    : "bg-red-500/15 text-red-400 border-red-500/30";
+              return (
+                <li
+                  key={run.id}
+                  className="border-border/60 bg-background/40 rounded-lg border"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(isOpen ? null : run.id)}
+                    className="hover:bg-background/60 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors"
+                  >
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <img
+                        src={run.image_a_url}
+                        alt="A"
+                        className="border-border/50 h-10 w-10 rounded border object-cover"
+                      />
+                      <img
+                        src={run.image_b_url}
+                        alt="B"
+                        className="border-border/50 h-10 w-10 rounded border object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-base font-semibold tabular-nums">
+                          {score}
+                          <span className="text-muted-foreground text-xs">/100</span>
+                        </span>
+                        {v && (
+                          <Badge className={`border px-1.5 py-0 text-[10px] ${vClass}`}>
+                            {v.toUpperCase()}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-muted-foreground truncate text-xs">
+                        {new Date(run.created_at).toLocaleString()} ·{" "}
+                        {run.summary ?? "No summary"}
+                      </p>
+                    </div>
+                    <ChevronDown
+                      className={`text-muted-foreground h-4 w-4 shrink-0 transition-transform ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isOpen && (
+                    <div className="border-border/50 space-y-3 border-t px-3 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => loadFromHistory(run)}
+                        >
+                          Reopen
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteRun(run.id)}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 className="mr-1 h-3.5 w-3.5" />
+                          Delete
+                        </Button>
+                      </div>
+                      {run.result.criteria?.length > 0 && (
+                        <div className="space-y-1.5">
+                          {run.result.criteria.map((c) => (
+                            <div
+                              key={c.name}
+                              className="flex items-center justify-between gap-3 text-xs"
+                            >
+                              <span className="text-foreground/80 truncate">{c.name}</span>
+                              <span className="text-muted-foreground shrink-0 tabular-nums">
+                                {Math.round(c.score)}/100
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <details className="text-xs">
+                        <summary className="text-muted-foreground hover:text-foreground cursor-pointer">
+                          Instruction JSON
+                        </summary>
+                        <pre className="bg-background/60 border-border/50 mt-2 overflow-x-auto rounded border p-2 font-mono text-[11px]">
+                          {JSON.stringify(run.instruction, null, 2)}
+                        </pre>
+                      </details>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </Card>
   );
 }

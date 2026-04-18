@@ -88,6 +88,42 @@ export type Database = {
           },
         ]
       }
+      image_matches: {
+        Row: {
+          created_at: string
+          id: string
+          image_a_url: string
+          image_b_url: string
+          instruction: Json
+          overall_similarity: number | null
+          result: Json
+          summary: string | null
+          verdict: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_a_url: string
+          image_b_url: string
+          instruction: Json
+          overall_similarity?: number | null
+          result: Json
+          summary?: string | null
+          verdict?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_a_url?: string
+          image_b_url?: string
+          instruction?: Json
+          overall_similarity?: number | null
+          result?: Json
+          summary?: string | null
+          verdict?: string | null
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           created_at: string
