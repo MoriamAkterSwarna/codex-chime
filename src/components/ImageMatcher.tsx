@@ -7,11 +7,14 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
+type BBox = { x: number; y: number; w: number; h: number };
+type Difference = { description: string; bboxA: BBox; bboxB: BBox };
+
 type MatchResult = {
   overallSimilarity: number;
   verdict: "match" | "partial" | "mismatch";
   criteria: { name: string; score: number; notes: string }[];
-  differences: string[];
+  differences: (Difference | string)[];
   similarities: string[];
   summary: string;
 };
