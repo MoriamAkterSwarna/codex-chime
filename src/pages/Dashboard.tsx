@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BarChart3, GraduationCap, Sparkles, TrendingUp } from "lucide-react";
-import { fetchProjects, startEvaluation } from "@/lib/api";
+import { fetchProjects } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProjectWithEvaluation } from "@/types";
 import { Card } from "@/components/ui/card";
