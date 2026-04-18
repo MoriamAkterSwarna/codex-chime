@@ -58,7 +58,44 @@ Deno.serve(async (req) => {
                   additionalProperties: false,
                 },
               },
-              differences: { type: "array", items: { type: "string" } },
+              differences: {
+                type: "array",
+                description:
+                  "Each visual difference, with normalized bounding boxes (0-1) on both images marking the mismatched region.",
+                items: {
+                  type: "object",
+                  properties: {
+                    description: { type: "string" },
+                    bboxA: {
+                      type: "object",
+                      description:
+                        "Normalized bounding box on Image A (values 0-1). x,y is top-left corner.",
+                      properties: {
+                        x: { type: "number" },
+                        y: { type: "number" },
+                        w: { type: "number" },
+                        h: { type: "number" },
+                      },
+                      required: ["x", "y", "w", "h"],
+                      additionalProperties: false,
+                    },
+                    bboxB: {
+                      type: "object",
+                      description: "Normalized bounding box on Image B (values 0-1).",
+                      properties: {
+                        x: { type: "number" },
+                        y: { type: "number" },
+                        w: { type: "number" },
+                        h: { type: "number" },
+                      },
+                      required: ["x", "y", "w", "h"],
+                      additionalProperties: false,
+                    },
+                  },
+                  required: ["description", "bboxA", "bboxB"],
+                  additionalProperties: false,
+                },
+              },
               similarities: { type: "array", items: { type: "string" } },
               summary: { type: "string" },
             },
