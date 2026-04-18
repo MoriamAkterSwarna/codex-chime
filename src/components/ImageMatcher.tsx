@@ -46,6 +46,42 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function BBoxCrop({ src, bbox, label }: { src: string; bbox: BBox; label: string }) {
+  // Clamp + guard against zero-size boxes
+  const x = Math.max(0, Math.min(1, bbox.x));
+  const y = Math.max(0, Math.min(1, bbox.y));
+  const w = Math.max(0.001, Math.min(1 - x, bbox.w));
+  const h = Math.max(0.001, Math.min(1 - y, bbox.h));
+
+  const displayHeight = 140;
+  const aspect = w / h;
+  const displayWidth = displayHeight * aspect;
+
+  return (
+    <div className="space-y-1.5">
+      <div className="text-muted-foreground flex items-center justify-between text-[10px] font-medium uppercase tracking-wider">
+        <span>{label}</span>
+        <span className="tabular-nums">
+          {Math.round(w * 100)}×{Math.round(h * 100)}%
+        </span>
+      </div>
+      <div className="border-border/60 bg-background/60 flex items-center justify-center overflow-hidden rounded border">
+        <div
+          style={{
+            width: `${displayWidth}px`,
+            height: `${displayHeight}px`,
+            maxWidth: "100%",
+            backgroundImage: `url(${src})`,
+            backgroundRepeat: "no-repeat",
+            backgroundSize: `${100 / w}% ${100 / h}%`,
+            backgroundPosition: `${(x / (1 - w || 1)) * 100}% ${(y / (1 - h || 1)) * 100}%`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function fileToText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
