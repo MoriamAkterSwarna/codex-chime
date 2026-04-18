@@ -221,8 +221,29 @@ export function ImageMatcher() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      setResult((data as { result: MatchResult }).result);
+      const matchResult = (data as { result: MatchResult }).result;
+      setResult(matchResult);
       toast.success("Comparison complete");
+
+      // Persist run to history
+      const { data: inserted, error: insErr } = await (supabase as any)
+        .from("image_matches")
+        .insert({
+          image_a_url: previewA,
+          image_b_url: previewB,
+          instruction,
+          result: matchResult,
+          overall_similarity: matchResult.overallSimilarity,
+          verdict: matchResult.verdict,
+          summary: matchResult.summary,
+        })
+        .select()
+        .single();
+      if (insErr) {
+        console.warn("save history error", insErr);
+      } else if (inserted) {
+        setHistory((h) => [inserted as MatchRun, ...h]);
+      }
     } catch (e) {
       console.error(e);
       toast.error(e instanceof Error ? e.message : "Comparison failed");
