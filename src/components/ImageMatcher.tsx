@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ImageIcon, FileJson, Sparkles, Loader2, X } from "lucide-react";
+import { ImageIcon, FileJson, Sparkles, Loader2, X, History, Trash2, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -14,6 +14,18 @@ type MatchResult = {
   differences: string[];
   similarities: string[];
   summary: string;
+};
+
+type MatchRun = {
+  id: string;
+  image_a_url: string;
+  image_b_url: string;
+  instruction: unknown;
+  result: MatchResult;
+  overall_similarity: number | null;
+  verdict: string | null;
+  summary: string | null;
+  created_at: string;
 };
 
 const DEFAULT_INSTRUCTION = {
