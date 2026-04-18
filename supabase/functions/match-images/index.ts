@@ -124,6 +124,12 @@ Use this JSON instruction as the rubric for what to compare and how to weight th
 ${JSON.stringify(instruction, null, 2)}
 \`\`\`
 
+For EACH visual difference, return:
+- a short text description
+- bboxA: a normalized bounding box (x, y, w, h all between 0 and 1) on Image A locating the region
+- bboxB: the corresponding normalized bounding box on Image B
+Boxes should tightly enclose the differing element. If a difference exists on only one image, still return a bbox on the other image at the spatial location where it would be.
+
 Return your structured evaluation ONLY via the submit_match tool.`,
       },
       { type: "image_url", image_url: { url: imageA } },
