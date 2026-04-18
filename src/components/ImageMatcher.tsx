@@ -128,7 +128,54 @@ export function ImageMatcher() {
   const [jsonName, setJsonName] = useState<string>("default rubric");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<MatchResult | null>(null);
+  const [history, setHistory] = useState<MatchRun[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [openId, setOpenId] = useState<string | null>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
+
+  const loadHistory = async () => {
+    const { data, error } = await (supabase as any)
+      .from("image_matches")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) {
+      console.warn("history load error", error);
+      return;
+    }
+    setHistory((data ?? []) as MatchRun[]);
+  };
+
+  useEffect(() => {
+    (async () => {
+      setHistoryLoading(true);
+      await loadHistory();
+      setHistoryLoading(false);
+    })();
+  }, []);
+
+  const deleteRun = async (id: string) => {
+    const prev = history;
+    setHistory((h) => h.filter((r) => r.id !== id));
+    const { error } = await (supabase as any).from("image_matches").delete().eq("id", id);
+    if (error) {
+      toast.error("Failed to delete");
+      setHistory(prev);
+    } else {
+      toast.success("Deleted");
+    }
+  };
+
+  const loadFromHistory = (run: MatchRun) => {
+    setPreviewA(run.image_a_url);
+    setPreviewB(run.image_b_url);
+    setImgA(null);
+    setImgB(null);
+    setInstructionText(JSON.stringify(run.instruction, null, 2));
+    setJsonName(`from history · ${new Date(run.created_at).toLocaleString()}`);
+    setResult(run.result);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleImage = async (which: "a" | "b", f: File) => {
     const url = await fileToDataUrl(f);
