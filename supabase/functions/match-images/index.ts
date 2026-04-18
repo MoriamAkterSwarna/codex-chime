@@ -58,7 +58,44 @@ Deno.serve(async (req) => {
                   additionalProperties: false,
                 },
               },
-              differences: { type: "array", items: { type: "string" } },
+              differences: {
+                type: "array",
+                description:
+                  "Each visual difference, with normalized bounding boxes (0-1) on both images marking the mismatched region.",
+                items: {
+                  type: "object",
+                  properties: {
+                    description: { type: "string" },
+                    bboxA: {
+                      type: "object",
+                      description:
+                        "Normalized bounding box on Image A (values 0-1). x,y is top-left corner.",
+                      properties: {
+                        x: { type: "number" },
+                        y: { type: "number" },
+                        w: { type: "number" },
+                        h: { type: "number" },
+                      },
+                      required: ["x", "y", "w", "h"],
+                      additionalProperties: false,
+                    },
+                    bboxB: {
+                      type: "object",
+                      description: "Normalized bounding box on Image B (values 0-1).",
+                      properties: {
+                        x: { type: "number" },
+                        y: { type: "number" },
+                        w: { type: "number" },
+                        h: { type: "number" },
+                      },
+                      required: ["x", "y", "w", "h"],
+                      additionalProperties: false,
+                    },
+                  },
+                  required: ["description", "bboxA", "bboxB"],
+                  additionalProperties: false,
+                },
+              },
               similarities: { type: "array", items: { type: "string" } },
               summary: { type: "string" },
             },
@@ -86,6 +123,12 @@ Use this JSON instruction as the rubric for what to compare and how to weight th
 \`\`\`json
 ${JSON.stringify(instruction, null, 2)}
 \`\`\`
+
+For EACH visual difference, return:
+- a short text description
+- bboxA: a normalized bounding box (x, y, w, h all between 0 and 1) on Image A locating the region
+- bboxB: the corresponding normalized bounding box on Image B
+Boxes should tightly enclose the differing element. If a difference exists on only one image, still return a bbox on the other image at the spatial location where it would be.
 
 Return your structured evaluation ONLY via the submit_match tool.`,
       },

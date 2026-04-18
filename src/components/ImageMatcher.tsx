@@ -7,11 +7,14 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
+type BBox = { x: number; y: number; w: number; h: number };
+type Difference = { description: string; bboxA: BBox; bboxB: BBox };
+
 type MatchResult = {
   overallSimilarity: number;
   verdict: "match" | "partial" | "mismatch";
   criteria: { name: string; score: number; notes: string }[];
-  differences: string[];
+  differences: (Difference | string)[];
   similarities: string[];
   summary: string;
 };
@@ -41,6 +44,42 @@ function fileToDataUrl(file: File): Promise<string> {
     r.onerror = reject;
     r.readAsDataURL(file);
   });
+}
+
+function BBoxCrop({ src, bbox, label }: { src: string; bbox: BBox; label: string }) {
+  // Clamp + guard against zero-size boxes
+  const x = Math.max(0, Math.min(1, bbox.x));
+  const y = Math.max(0, Math.min(1, bbox.y));
+  const w = Math.max(0.001, Math.min(1 - x, bbox.w));
+  const h = Math.max(0.001, Math.min(1 - y, bbox.h));
+
+  const displayHeight = 140;
+  const aspect = w / h;
+  const displayWidth = displayHeight * aspect;
+
+  return (
+    <div className="space-y-1.5">
+      <div className="text-muted-foreground flex items-center justify-between text-[10px] font-medium uppercase tracking-wider">
+        <span>{label}</span>
+        <span className="tabular-nums">
+          {Math.round(w * 100)}×{Math.round(h * 100)}%
+        </span>
+      </div>
+      <div className="border-border/60 bg-background/60 flex items-center justify-center overflow-hidden rounded border">
+        <div
+          style={{
+            width: `${displayWidth}px`,
+            height: `${displayHeight}px`,
+            maxWidth: "100%",
+            backgroundImage: `url(${src})`,
+            backgroundRepeat: "no-repeat",
+            backgroundSize: `${100 / w}% ${100 / h}%`,
+            backgroundPosition: `${(x / (1 - w || 1)) * 100}% ${(y / (1 - h || 1)) * 100}%`,
+          }}
+        />
+      </div>
+    </div>
+  );
 }
 
 function fileToText(file: File): Promise<string> {
@@ -379,28 +418,57 @@ export function ImageMatcher() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {result.similarities.length > 0 && (
-              <div>
-                <h3 className="mb-2 text-sm font-semibold text-green-400">Similarities</h3>
-                <ul className="text-muted-foreground space-y-1 text-sm">
-                  {result.similarities.map((s, i) => (
-                    <li key={i}>• {s}</li>
-                  ))}
-                </ul>
+          {result.similarities.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-green-400">Similarities</h3>
+              <ul className="text-muted-foreground space-y-1 text-sm">
+                {result.similarities.map((s, i) => (
+                  <li key={i}>• {s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {result.differences.length > 0 && (
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-red-400">Differences</h3>
+              <div className="space-y-4">
+                {result.differences.map((d, i) => {
+                  // Backwards-compat: tolerate plain-string differences from older runs
+                  if (typeof d === "string") {
+                    return (
+                      <div
+                        key={i}
+                        className="border-border/60 bg-background/40 rounded-lg border p-3 text-sm"
+                      >
+                        <span className="text-muted-foreground">• {d}</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={i}
+                      className="border-border/60 bg-background/40 space-y-3 rounded-lg border p-3"
+                    >
+                      <p className="text-foreground/90 text-sm">{d.description}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <BBoxCrop
+                          src={previewA!}
+                          bbox={d.bboxA}
+                          label="Image A"
+                        />
+                        <BBoxCrop
+                          src={previewB!}
+                          bbox={d.bboxB}
+                          label="Image B"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-            {result.differences.length > 0 && (
-              <div>
-                <h3 className="mb-2 text-sm font-semibold text-red-400">Differences</h3>
-                <ul className="text-muted-foreground space-y-1 text-sm">
-                  {result.differences.map((s, i) => (
-                    <li key={i}>• {s}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
