@@ -5,9 +5,7 @@ import { fetchProjects, startEvaluation } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProjectWithEvaluation } from "@/types";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { SiteHeader } from "@/components/SiteHeader";
-import { ProjectCard } from "@/components/ProjectCard";
 import { ImageMatcher } from "@/components/ImageMatcher";
 
 const Dashboard = () => {
