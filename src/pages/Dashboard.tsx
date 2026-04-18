@@ -10,8 +10,6 @@ import { ImageMatcher } from "@/components/ImageMatcher";
 
 const Dashboard = () => {
   const [projects, setProjects] = useState<ProjectWithEvaluation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [evaluating, setEvaluating] = useState<Set<string>>(new Set());
 
   const reload = async () => {
     try {
@@ -24,11 +22,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      await reload();
-      setLoading(false);
-    })();
+    reload();
 
     const channel = supabase
       .channel("evaluations-changes")
@@ -45,24 +39,6 @@ const Dashboard = () => {
       supabase.removeChannel(channel);
     };
   }, []);
-
-  const handleEvaluate = async (p: ProjectWithEvaluation) => {
-    setEvaluating((s) => new Set(s).add(p.id));
-    try {
-      await startEvaluation(p.id, p.live_url, p.github_repo);
-      toast.success(`Evaluation started for ${p.project_title}`);
-      await reload();
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to start evaluation");
-    } finally {
-      setEvaluating((s) => {
-        const n = new Set(s);
-        n.delete(p.id);
-        return n;
-      });
-    }
-  };
 
   const stats = useMemo(() => {
     const completed = projects.filter((p) => p.evaluation?.status === "completed");
