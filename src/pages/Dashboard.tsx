@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ProjectCard } from "@/components/ProjectCard";
+import { ImageMatcher } from "@/components/ImageMatcher";
 
 const Dashboard = () => {
   const [projects, setProjects] = useState<ProjectWithEvaluation[]>([]);
@@ -158,6 +159,11 @@ const Dashboard = () => {
               ))}
             </div>
           )}
+        </section>
+
+        {/* Image-to-image matcher */}
+        <section className="mt-16">
+          <ImageMatcher />
         </section>
       </main>
     </div>
