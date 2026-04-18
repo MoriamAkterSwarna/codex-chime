@@ -382,28 +382,57 @@ export function ImageMatcher() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {result.similarities.length > 0 && (
-              <div>
-                <h3 className="mb-2 text-sm font-semibold text-green-400">Similarities</h3>
-                <ul className="text-muted-foreground space-y-1 text-sm">
-                  {result.similarities.map((s, i) => (
-                    <li key={i}>• {s}</li>
-                  ))}
-                </ul>
+          {result.similarities.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-green-400">Similarities</h3>
+              <ul className="text-muted-foreground space-y-1 text-sm">
+                {result.similarities.map((s, i) => (
+                  <li key={i}>• {s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {result.differences.length > 0 && (
+            <div>
+              <h3 className="mb-3 text-sm font-semibold text-red-400">Differences</h3>
+              <div className="space-y-4">
+                {result.differences.map((d, i) => {
+                  // Backwards-compat: tolerate plain-string differences from older runs
+                  if (typeof d === "string") {
+                    return (
+                      <div
+                        key={i}
+                        className="border-border/60 bg-background/40 rounded-lg border p-3 text-sm"
+                      >
+                        <span className="text-muted-foreground">• {d}</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={i}
+                      className="border-border/60 bg-background/40 space-y-3 rounded-lg border p-3"
+                    >
+                      <p className="text-foreground/90 text-sm">{d.description}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <BBoxCrop
+                          src={previewA!}
+                          bbox={d.bboxA}
+                          label="Image A"
+                        />
+                        <BBoxCrop
+                          src={previewB!}
+                          bbox={d.bboxB}
+                          label="Image B"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-            {result.differences.length > 0 && (
-              <div>
-                <h3 className="mb-2 text-sm font-semibold text-red-400">Differences</h3>
-                <ul className="text-muted-foreground space-y-1 text-sm">
-                  {result.differences.map((s, i) => (
-                    <li key={i}>• {s}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
