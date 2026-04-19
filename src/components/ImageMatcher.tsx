@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ImageIcon, FileJson, Sparkles, Loader2, X, History, Trash2, ChevronDown } from "lucide-react";
+import { ImageIcon, FileJson, Sparkles, Loader2, X, History, Trash2, ChevronDown, Cpu } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { computeCVMetrics, type CVMetrics } from "@/lib/cv";
 
 type BBox = { x: number; y: number; w: number; h: number };
 type Difference = { description: string; bboxA: BBox; bboxB: BBox };
