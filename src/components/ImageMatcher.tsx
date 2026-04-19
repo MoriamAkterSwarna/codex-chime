@@ -277,28 +277,13 @@ export function ImageMatcher() {
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       const matchResult = (data as { result: MatchResult }).result;
+      const wasCached = Boolean((data as any)?.cached);
       setResult(matchResult);
-      toast.success("Comparison complete");
+      toast.success(wasCached ? "Loaded from cache" : "Comparison complete");
 
-      // Persist run to history
-      const { data: inserted, error: insErr } = await (supabase as any)
-        .from("image_matches")
-        .insert({
-          image_a_url: previewA,
-          image_b_url: previewB,
-          instruction,
-          result: matchResult,
-          overall_similarity: matchResult.overallSimilarity,
-          verdict: matchResult.verdict,
-          summary: matchResult.summary,
-        })
-        .select()
-        .single();
-      if (insErr) {
-        console.warn("save history error", insErr);
-      } else if (inserted) {
-        setHistory((h) => [inserted as MatchRun, ...h]);
-      }
+      // The edge function persists the row when it's a fresh AI call.
+      // Refresh history so the new (or existing) row shows up at the top.
+      if (!wasCached) await loadHistory();
     } catch (e) {
       console.error(e);
       toast.error(e instanceof Error ? e.message : "Comparison failed");

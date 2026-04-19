@@ -1,4 +1,6 @@
 // Compare two images against a JSON instruction using Lovable AI (Gemini)
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -7,6 +9,15 @@ const corsHeaders = {
 };
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+async function sha256Hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -25,6 +36,32 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "imageA, imageB, and instruction are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // Cache key: sha256 of the exact inputs. Identical inputs => same hash => cached row.
+    const inputHash = await sha256Hex(
+      JSON.stringify({ a: imageA, b: imageB, i: instruction }),
+    );
+
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
+
+    const { data: cached, error: cacheErr } = await admin
+      .from("image_matches")
+      .select("result")
+      .eq("input_hash", inputHash)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (cacheErr) {
+      console.warn("cache lookup error", cacheErr);
+    } else if (cached?.result) {
+      console.log("cache hit", inputHash);
+      return new Response(JSON.stringify({ result: cached.result, cached: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const tools = [
@@ -193,7 +230,20 @@ Return your structured evaluation ONLY via the submit_match tool.`,
     }
     const result = JSON.parse(toolCall.function.arguments);
 
-    return new Response(JSON.stringify({ result }), {
+    // Persist server-side so the cache is populated even if the client crashes.
+    const { error: insErr } = await admin.from("image_matches").insert({
+      image_a_url: imageA,
+      image_b_url: imageB,
+      instruction,
+      result,
+      overall_similarity: result.overallSimilarity,
+      verdict: result.verdict,
+      summary: result.summary,
+      input_hash: inputHash,
+    });
+    if (insErr) console.warn("persist error", insErr);
+
+    return new Response(JSON.stringify({ result, cached: false, inputHash }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
