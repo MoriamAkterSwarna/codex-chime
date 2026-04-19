@@ -144,11 +144,15 @@ Return your structured evaluation ONLY via the submit_match tool.`,
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
+        // Force deterministic output so identical inputs produce identical scores.
+        temperature: 0,
+        top_p: 1,
+        seed: 42,
         messages: [
           {
             role: "system",
             content:
-              "You are a meticulous visual QA expert. Always respond using the submit_match tool.",
+              "You are a meticulous, deterministic visual QA expert. For identical inputs you must always return identical scores and the same set of differences in the same order. Always respond using the submit_match tool.",
           },
           { role: "user", content: userContent },
         ],
