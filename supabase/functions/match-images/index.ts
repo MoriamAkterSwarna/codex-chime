@@ -230,7 +230,20 @@ Return your structured evaluation ONLY via the submit_match tool.`,
     }
     const result = JSON.parse(toolCall.function.arguments);
 
-    return new Response(JSON.stringify({ result }), {
+    // Persist server-side so the cache is populated even if the client crashes.
+    const { error: insErr } = await admin.from("image_matches").insert({
+      image_a_url: imageA,
+      image_b_url: imageB,
+      instruction,
+      result,
+      overall_similarity: result.overallSimilarity,
+      verdict: result.verdict,
+      summary: result.summary,
+      input_hash: inputHash,
+    });
+    if (insErr) console.warn("persist error", insErr);
+
+    return new Response(JSON.stringify({ result, cached: false, inputHash }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
