@@ -397,6 +397,67 @@ export function ImageMatcher() {
         </Button>
       </div>
 
+      {cv && (
+        <div className="border-border/50 mt-8 border-t pt-6">
+          <div className="mb-3 flex items-center gap-2">
+            <Cpu className="text-primary h-4 w-4" />
+            <h3 className="font-display text-lg font-semibold">Computer-vision metrics</h3>
+            <Badge variant="secondary" className="text-[10px]">
+              client-side
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="border-border/60 bg-background/40 rounded-lg border p-3">
+              <div className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+                pHash similarity
+              </div>
+              <div className="font-display mt-1 text-2xl font-bold tabular-nums">
+                {cv.phashSimilarity.toFixed(1)}
+                <span className="text-muted-foreground text-sm">/100</span>
+              </div>
+              <div className="text-muted-foreground mt-1 text-xs tabular-nums">
+                Hamming {cv.hammingDistance}/64
+              </div>
+              <Progress value={cv.phashSimilarity} className="mt-2 h-1.5" />
+            </div>
+            <div className="border-border/60 bg-background/40 rounded-lg border p-3">
+              <div className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+                SSIM
+              </div>
+              <div className="font-display mt-1 text-2xl font-bold tabular-nums">
+                {cv.ssim.toFixed(3)}
+              </div>
+              <div className="text-muted-foreground mt-1 text-xs tabular-nums">
+                ≈ {cv.ssimSimilarity.toFixed(1)}/100
+              </div>
+              <Progress value={cv.ssimSimilarity} className="mt-2 h-1.5" />
+            </div>
+            <div className="border-primary/30 bg-primary/5 rounded-lg border p-3">
+              <div className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+                CV combined
+              </div>
+              <div className="font-display text-gradient-primary mt-1 text-2xl font-bold tabular-nums">
+                {cv.combined.toFixed(1)}
+                <span className="text-muted-foreground text-sm">/100</span>
+              </div>
+              <div className="text-muted-foreground mt-1 text-xs">
+                50% pHash · 50% SSIM
+              </div>
+              <Progress value={cv.combined} className="mt-2 h-1.5" />
+            </div>
+          </div>
+          <details className="mt-3">
+            <summary className="text-muted-foreground hover:text-foreground cursor-pointer text-xs">
+              Hashes
+            </summary>
+            <div className="text-muted-foreground mt-2 grid grid-cols-1 gap-1 font-mono text-[11px] sm:grid-cols-2">
+              <div>A: {cv.phashA}</div>
+              <div>B: {cv.phashB}</div>
+            </div>
+          </details>
+        </div>
+      )}
+
       {result && (
         <div className="border-border/50 mt-8 space-y-6 border-t pt-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
