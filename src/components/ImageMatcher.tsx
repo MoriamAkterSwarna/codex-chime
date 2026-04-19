@@ -215,6 +215,11 @@ export function ImageMatcher() {
     setInstructionText(JSON.stringify(run.instruction, null, 2));
     setJsonName(`from history · ${new Date(run.created_at).toLocaleString()}`);
     setResult(run.result);
+    setCv(null);
+    // Recompute CV metrics for the loaded pair
+    computeCVMetrics(run.image_a_url, run.image_b_url)
+      .then(setCv)
+      .catch((e) => console.warn("cv recompute failed", e));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
