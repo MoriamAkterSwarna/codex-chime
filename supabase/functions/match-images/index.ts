@@ -38,6 +38,32 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Cache key: sha256 of the exact inputs. Identical inputs => same hash => cached row.
+    const inputHash = await sha256Hex(
+      JSON.stringify({ a: imageA, b: imageB, i: instruction }),
+    );
+
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
+
+    const { data: cached, error: cacheErr } = await admin
+      .from("image_matches")
+      .select("result")
+      .eq("input_hash", inputHash)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (cacheErr) {
+      console.warn("cache lookup error", cacheErr);
+    } else if (cached?.result) {
+      console.log("cache hit", inputHash);
+      return new Response(JSON.stringify({ result: cached.result, cached: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const tools = [
       {
         type: "function",
