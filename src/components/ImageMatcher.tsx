@@ -168,6 +168,7 @@ export function ImageMatcher() {
   const [jsonName, setJsonName] = useState<string>("default rubric");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<MatchResult | null>(null);
+  const [cv, setCv] = useState<CVMetrics | null>(null);
   const [history, setHistory] = useState<MatchRun[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
