@@ -261,10 +261,19 @@ export function ImageMatcher() {
 
     setRunning(true);
     setResult(null);
+    setCv(null);
     try {
-      const { data, error } = await supabase.functions.invoke("match-images", {
+      // Run computer-vision metrics + Gemini rubric in parallel.
+      const cvPromise = computeCVMetrics(previewA, previewB).catch((e) => {
+        console.warn("cv failed", e);
+        return null;
+      });
+      const aiPromise = supabase.functions.invoke("match-images", {
         body: { imageA: previewA, imageB: previewB, instruction },
       });
+
+      const [cvMetrics, { data, error }] = await Promise.all([cvPromise, aiPromise]);
+      if (cvMetrics) setCv(cvMetrics);
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       const matchResult = (data as { result: MatchResult }).result;
