@@ -94,6 +94,7 @@ export type Database = {
           id: string
           image_a_url: string
           image_b_url: string
+          input_hash: string | null
           instruction: Json
           overall_similarity: number | null
           result: Json
@@ -105,6 +106,7 @@ export type Database = {
           id?: string
           image_a_url: string
           image_b_url: string
+          input_hash?: string | null
           instruction: Json
           overall_similarity?: number | null
           result: Json
@@ -116,6 +118,7 @@ export type Database = {
           id?: string
           image_a_url?: string
           image_b_url?: string
+          input_hash?: string | null
           instruction?: Json
           overall_similarity?: number | null
           result?: Json
